@@ -1,0 +1,86 @@
+{
+  "users": {
+    "admin": {
+      "name": "Admin Test",
+      "email": "admin@cypress.test",
+      "password": "Admin123!"
+    },
+    "regular": {
+      "name": "Test User",
+      "email": "testuser@cypress.test",
+      "password": "Test123!"
+    },
+    "pending": {
+      "name": "Pending User",
+      "email": "pending@cypress.test",
+      "password": "Pending123!"
+    },
+    "rejected": {
+      "name": "Rejected User",
+      "email": "rejected@cypress.test",
+      "password": "Rejected123!"
+    },
+    "newUser": {
+      "name": "New Test User",
+      "email": "newuser@cypress.test",
+      "password": "NewUser123!"
+    }
+  },
+  "rpp": {
+    "namaGuru": "Budi Santoso",
+    "sekolah": "SD Negeri 1 Test",
+    "jenjang": "SD",
+    "mataPelajaran": "Matematika",
+    "kelas": "5",
+    "materi": "Pecahan Sederhana",
+    "kurikulum": "Kurikulum Merdeka",
+    "alokasiWaktu": "2 x pertemuan"
+  },
+  "buatSoal": {
+    "namaGuru": "Guru Test",
+    "mataPelajaran": "Bahasa Indonesia",
+    "kelas": "X",
+    "materiPokok": "Teks Laporan Hasil Observasi",
+    "jumlahSoal": "10"
+  },
+  "lkpd": {
+    "mataPelajaran": "IPA",
+    "kelas": "7",
+    "materi": "Sistem Pencernaan Manusia",
+    "jumlahSoal": "10"
+  },
+  "materi": {
+    "mataPelajaran": "Sejarah",
+    "kelas": "XI",
+    "materi": "Pergerakan Nasional Indonesia",
+    "kedalaman": "sedang"
+  },
+  "presentasi": {
+    "topik": "Pemanasan Global",
+    "audiens": "Siswa SMA",
+    "durasi": "15 menit",
+    "jumlahSlide": "10"
+  },
+  "rubrik": {
+    "mataPelajaran": "Bahasa Inggris",
+    "jenisTugas": "Speaking Test",
+    "kriteria": "Fluency, Vocabulary, Grammar"
+  },
+  "icebreak": {
+    "kelas": "X",
+    "durasi": "10-15 menit",
+    "jumlahSiswa": "30",
+    "tema": "Getting to Know Each Other"
+  },
+  "refleksi": {
+    "mataPelajaran": "Matematika",
+    "kelas": "VIII",
+    "materi": "Aljabar Dasar"
+  },
+  "banner": {
+    "title": "Test Banner",
+    "message": "This is a test banner for Cypress testing",
+    "buttonText": "Click Here",
+    "buttonUrl": "/tools/rpp"
+  }
+}

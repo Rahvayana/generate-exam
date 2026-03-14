@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  user
+}
+
+enum Status {
+  pending
+  approved
+  rejected
+  unapproved
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(user)
+  status    Status   @default(pending)
+  apiKey    String?  // User's own Gemini API key
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bannerDismisses BannerDismiss[]
+}
+
+model EngagementBanner {
+  id                  String   @id @default(uuid())
+  title               String
+  message             String
+  buttonText          String
+  buttonUrl           String
+  showOnUserDashboard Boolean  @default(true)
+  allowDismiss        Boolean  @default(true)
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  dismisses BannerDismiss[]
+}
+
+model BannerDismiss {
+  id         String   @id @default(uuid())
+  bannerId   String
+  userId     String
+  dismissedAt DateTime @default(now())
+
+  // Relations
+  banner EngagementBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bannerId, userId])
+}
