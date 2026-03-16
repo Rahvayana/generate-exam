@@ -1,8 +1,9 @@
 // ============================================
 // SHARED PROMPT BUILDER FOR ALL TOOLS
+// Updated for Client Feedback Implementation
 // ============================================
 
-import type { ToolType } from './tools-schema'
+import type { ToolType, CurriculumType, TipeLKPD, KolomJawaban, KomposisiSoal } from './tools-schema'
 
 // System instruction for JSON generation
 export function buildSystemInstruction(): string {
@@ -47,16 +48,97 @@ export function buildToolPrompt(tool: ToolType, data: Record<string, any>): stri
 
 function buildRPPPrompt(data: Record<string, any>): string {
   const {
-    mataPelajaran,
-    kelas,
-    materi,
     namaGuru,
+    nipGuru,
+    namaKepsek,
+    nipKepsek,
     sekolah,
-    alokasiWaktu,
-    tujuanPembelajaran,
+    npsn,
+    tahunAjaran,
+    semester,
     kurikulum,
-    jenjang,
+    // Merdeka
+    fase,
+    kelasMerdeka,
+    jalurIKM,
+    mapelMerdeka,
+    mapelMerdekaLainnya,
+    elemenCP,
+    profilPelajarPancasila = [],
+    // K-13
+    jenjangK13,
+    kelasK13,
+    versiK13,
+    mapelK13,
+    mapelK13Lainnya,
+    // Kemenag
+    naungan,
+    jenjangKemenag,
+    kelasKemenag,
+    mapelKemenag,
+    mapelKemenagLainnya,
+    jenisPendidikan,
+    tingkatanPesantren,
+    mataKitab,
+    // Detail Pembelajaran
+    materiPokok,
+    alokasiJP,
+    alokasiPertemuan,
+    modelPembelajaran,
+    metodePembelajaran,
+    mediaSarana,
+    tujuanPembelajaran,
   } = data
+
+  // Normalize kurikulum to handle both short and full names
+  const normalizeKurikulum = (k?: string) => {
+    if (!k) return 'kemenag'
+    const lower = k.toLowerCase()
+    if (lower === 'merdeka' || lower.includes('merdeka')) return 'merdeka'
+    if (lower === 'k13' || lower.includes('2013')) return 'k13'
+    if (lower === 'kemenag' || lower.includes('kbc') || lower.includes('kemenag')) return 'kemenag'
+    return 'kemenag' // default fallback
+  }
+
+  const normalizedKurikulum = normalizeKurikulum(kurikulum)
+
+  // Determine mataPelajaran and kelas based on kurikulum
+  let mataPelajaran = ''
+  let kelas = ''
+
+  if (normalizedKurikulum === 'merdeka') {
+    mataPelajaran = mapelMerdekaLainnya || mapelMerdeka || ''
+    kelas = kelasMerdeka || ''
+  } else if (normalizedKurikulum === 'k13') {
+    mataPelajaran = mapelK13Lainnya || mapelK13 || ''
+    kelas = kelasK13 || ''
+  } else if (normalizedKurikulum === 'kemenag') {
+    mataPelajaran = mapelKemenagLainnya || mapelKemenag || ''
+    kelas = kelasKemenag || ''
+  }
+
+  // Build curriculum-specific info
+  let curriculumInfo = ''
+  if (normalizedKurikulum === 'merdeka') {
+    curriculumInfo = `Kurikulum: Kurikulum Merdeka
+${fase ? `Fase: ${fase}` : ''}
+${kelas ? `Kelas: ${kelas}` : ''}
+${elemenCP ? `Elemen CP: ${elemenCP}` : ''}
+${jalurIKM ? `Jalur IKM: ${jalurIKM}` : ''}`
+  } else if (normalizedKurikulum === 'k13') {
+    curriculumInfo = `Kurikulum: Kurikulum 2013
+${jenjangK13 ? `Jenjang: ${jenjangK13}` : ''}
+${kelas ? `Kelas: ${kelas}` : ''}
+${versiK13 ? `Versi: ${versiK13}` : ''}`
+  } else if (normalizedKurikulum === 'kemenag') {
+    curriculumInfo = `Kurikulum: KBC Kemenag
+${naungan ? `Naungan: ${naungan}` : ''}
+${jenjangKemenag ? `Jenjang: ${jenjangKemenag}` : ''}
+${kelas ? `Kelas: ${kelas}` : ''}
+${jenisPendidikan ? `Jenis Pendidikan: ${jenisPendidikan}` : ''}
+${tingkatanPesantren ? `Tingkatan Pesantren: ${tingkatanPesantren}` : ''}
+${mataKitab ? `Mata Kitab: ${mataKitab}` : ''}`
+  }
 
   return `Generate a complete RPP/Modul Ajar (lesson plan) based on the following specifications.
 
@@ -64,19 +146,55 @@ function buildRPPPrompt(data: Record<string, any>): string {
 INFORMASI DASAR
 ===========================================
 
-Mata Pelajaran: ${mataPelajaran}
-Kelas: ${kelas}
-Materi: ${materi}
-${jenjang ? `Jenjang: ${jenjang}` : ''}
-${kurikulum ? `Kurikulum: ${kurikulum}` : ''}
-${alokasiWaktu ? `Alokasi Waktu: ${alokasiWaktu}` : ''}
+${curriculumInfo}
 
-${namaGuru ? `===========================================
-IDENTITAS PENDIDIK
+Mata Pelajaran: ${mataPelajaran}
+Materi Pokok: ${materiPokok}
+${alokasiJP ? `Alokasi Waktu: ${alokasiJP} JP` : ''}
+${alokasiPertemuan ? `Pertemuan ke: ${alokasiPertemuan}` : ''}
+
+===========================================
+IDENTITAS GURU & SEKOLAH
 ===========================================
 
-Nama Guru: ${namaGuru}
+${namaGuru ? `Nama Guru: ${namaGuru}` : ''}
+${nipGuru ? `NIP Guru: ${nipGuru}` : ''}
 ${sekolah ? `Nama Sekolah: ${sekolah}` : ''}
+${npsn ? `NPSN: ${npsn}` : ''}
+${namaKepsek ? `Nama Kepala Sekolah: ${namaKepsek}` : ''}
+${nipKepsek ? `NIP Kepala Sekolah: ${nipKepsek}` : ''}
+${tahunAjaran ? `Tahun Ajaran: ${tahunAjaran}` : ''}
+${semester ? `Semester: ${semester}` : ''}
+
+${profilPelajarPancasila.length > 0 ? `===========================================
+PROFIL PELAJAR PANCASILA
+===========================================
+
+${profilPelajarPancasila.map((p: string) => `- ${p}`).join('\n')}
+
+` : ''}${modelPembelajaran ? `===========================================
+MODEL PEMBELAJARAN
+===========================================
+
+${modelPembelajaran}
+
+` : ''}${metodePembelajaran ? `===========================================
+METODE PEMBELAJARAN
+===========================================
+
+${metodePembelajaran}
+
+` : ''}${mediaSarana ? `===========================================
+MEDIA & SARANA
+===========================================
+
+${mediaSarana}
+
+` : ''}${tujuanPembelajaran ? `===========================================
+TUJUAN PEMBELAJARAN (USER INPUT)
+===========================================
+
+${tujuanPembelajaran}
 
 ` : ''}===========================================
 OUTPUT REQUIREMENTS
@@ -84,14 +202,15 @@ OUTPUT REQUIREMENTS
 
 Generate a comprehensive lesson plan with:
 
-1. Identitas section (mata pelajaran, kelas, materi${alokasiWaktu ? ', alokasi waktu' : ''})
-2. Tujuan Pembelajaran (3-5 specific, measurable learning objectives)
-3. Langkah Pembelajaran with:
-   - Pendahuluan (opening activities, 10-15 minutes)
-   - Inti (main learning activities, exploration, elaboration)
+1. Identitas section (nama guru, NIP, kepala sekolah, NIP kepsek, sekolah, NPSN, tahun ajaran, semester, mata pelajaran, kelas, materi${alokasiJP ? ', alokasi waktu' : ''})
+2. ${profilPelajarPancasila.length > 0 ? 'Integrasi Profil Pelajar Pancasila sesuai pilihan' : 'Profil Pelajar Pancasila (jika relevan)'}
+3. Tujuan Pembelajaran (3-5 specific, measurable learning objectives${tujuanPembelajaran ? ', pertimbangkan input user' : ''})
+4. Langkah Pembelajaran with:
+   - Pendahuluan (opening activities, apersepsi, motivasi, 10-15 minutes)
+   - Inti (main learning activities sesuai model pembelajaran${modelPembelajaran ? `: ${modelPembelajaran}` : ''}, exploration, elaboration)
    - Penutup (closing activities, reflection, 5-10 minutes)
-4. Asesmen (3-5 assessment types with techniques)
-5. Media Pembelajaran (3-5 recommended learning media)
+5. Asesmen (3-5 assessment types with techniques)
+6. Media Pembelajaran (3-5 recommended learning media${mediaSarana ? ', pertimbangkan input user' : ''})
 
 ===========================================
 REQUIRED JSON STRUCTURE
@@ -102,12 +221,23 @@ Return a JSON object with this exact structure:
 {
   "identitas": {
     "namaGuru": ${namaGuru ? `"${namaGuru}"` : 'null'},
+    "nipGuru": ${nipGuru ? `"${nipGuru}"` : 'null'},
+    "namaKepsek": ${namaKepsek ? `"${namaKepsek}"` : 'null'},
+    "nipKepsek": ${nipKepsek ? `"${nipKepsek}"` : 'null'},
     "sekolah": ${sekolah ? `"${sekolah}"` : 'null'},
+    "npsn": ${npsn ? `"${npsn}"` : 'null'},
+    "tahunAjaran": ${tahunAjaran ? `"${tahunAjaran}"` : 'null'},
+    "semester": ${semester ? `"${semester}"` : 'null'},
     "mataPelajaran": "${mataPelajaran}",
     "kelas": "${kelas}",
-    "materi": "${materi}",
-    "alokasiWaktu": ${alokasiWaktu ? `"${alokasiWaktu}"` : 'null'}
+    "materi": "${materiPokok}",
+    "kurikulum": "${normalizedKurikulum === 'merdeka' ? 'Kurikulum Merdeka' : normalizedKurikulum === 'k13' ? 'Kurikulum 2013' : 'KBC Kemenag'}",
+    ${fase ? `"fase": "${fase}",` : ''}
+    ${elemenCP ? `"elemenCP": "${elemenCP}",` : ''}
+    "alokasiWaktu": ${alokasiJP ? `"${alokasiJP} JP"` : 'null'}
   },
+  ${profilPelajarPancasila.length > 0 ? `"profilPelajarPancasila": ${JSON.stringify(profilPelajarPancasila)},` : ''}
+  ${modelPembelajaran ? `"modelPembelajaran": "${modelPembelajaran}",` : ''}
   "tujuanPembelajaran": [
     "Specific learning objective 1",
     "Specific learning objective 2",
@@ -132,7 +262,9 @@ Return a JSON object with this exact structure:
 REMEMBER:
 1. Return ONLY the JSON. No markdown, no explanations.
 2. Use formal Indonesian educational language.
-3. Align with ${kurikulum || 'modern curriculum'} principles.`
+3. Align with ${normalizedKurikulum === 'merdeka' ? 'Kurikulum Merdeka' : normalizedKurikulum === 'k13' ? 'Kurikulum 2013' : 'KBC Kemenag'} principles.
+4. ${profilPelajarPancasila.length > 0 ? 'Integrasi Profil Pelajar Pancasila dalam kegiatan pembelajaran.' : ''}
+5. ${modelPembelajaran ? `Gunakan model pembelajaran: ${modelPembelajaran}.` : ''}`
 }
 
 // ============================================
@@ -141,14 +273,63 @@ REMEMBER:
 
 function buildLKPDPrompt(data: Record<string, any>): string {
   const {
-    mataPelajaran,
-    kelas,
-    materi,
-    tujuanPembelajaran,
-    instruksi,
-    jumlahSoal = 10,
+    namaGuru,
+    nipGuru,
+    namaKepsek,
+    nipKepsek,
+    sekolah,
+    npsn,
+    kurikulum,
     jenjang,
+    kelas,
+    fase,
+    mataPelajaran,
+    mataPelajaranLainnya,
+    tahunAjaran,
+    semester,
+    alokasiWaktu,
+    materiPokok,
+    kdCpTp,
+    jenjangKemenag,
+    kelasKemenag,
+    tipeLKPD,
+    tipeSoal = [],
+    komposisiSoal = [],
+    kolomJawaban,
+    konteksTema,
+    catatanKhusus,
+    sertakanGambar,
   } = data
+
+  // Normalize kurikulum to handle both short and full names
+  const normalizeKurikulum = (k?: string) => {
+    if (!k) return 'kemenag'
+    const lower = k.toLowerCase()
+    if (lower === 'merdeka' || lower.includes('merdeka')) return 'merdeka'
+    if (lower === 'k13' || lower.includes('2013')) return 'k13'
+    if (lower === 'kemenag' || lower.includes('kbc') || lower.includes('kemenag')) return 'kemenag'
+    return 'kemenag'
+  }
+
+  const normalizedKurikulum = normalizeKurikulum(kurikulum)
+
+  const mapel = mataPelajaranLainnya || mataPelajaran || ''
+  const kelasValue = normalizedKurikulum === 'kemenag' ? kelasKemenag : kelas
+
+  // Build question composition info
+  const soalInfo = komposisiSoal.length > 0
+    ? komposisiSoal.map((k: KomposisiSoal) => `${k.tipe}: ${k.jumlah}`).join(', ')
+    : '10 soal campuran'
+
+  // Build tipe LKPD description
+  const tipeLKPDDescriptions: Record<TipeLKPD, string> = {
+    eksploratif: 'penemuan konsep mandiri melalui guided inquiry',
+    latihan: 'latihan soal terstruktur dan berulang untuk penguatan pemahaman',
+    praktikum: 'panduan percobaan atau eksperimen',
+    proyek: 'panduan kerja proyek (Project Based Learning)',
+    remedi: 'pemulihan untuk peserta didik yang belum tuntas',
+    pengayaan: 'pengayaan untuk tantangan lebih tinggi',
+  }
 
   return `Generate a complete Lembar Kerja Peserta Didik (LKPD) based on the following specifications.
 
@@ -156,30 +337,88 @@ function buildLKPDPrompt(data: Record<string, any>): string {
 INFORMASI DASAR
 ===========================================
 
-Mata Pelajaran: ${mataPelajaran}
-Kelas: ${kelas}
-Materi: ${materi}
+Mata Pelajaran: ${mapel}
+Kelas: ${kelasValue}
 ${jenjang ? `Jenjang: ${jenjang}` : ''}
+${fase ? `Fase: ${fase}` : ''}
+Materi Pokok: ${materiPokok}
+${kdCpTp ? `KD/CP/TP: ${kdCpTp}` : ''}
+${alokasiWaktu ? `Alokasi Waktu: ${alokasiWaktu} menit` : ''}
 
 ===========================================
+IDENTITAS
+===========================================
+
+${namaGuru ? `Nama Guru: ${namaGuru}` : ''}
+${nipGuru ? `NIP: ${nipGuru}` : ''}
+${sekolah ? `Nama Sekolah: ${sekolah}` : ''}
+${npsn ? `NPSN: ${npsn}` : ''}
+${namaKepsek ? `Nama Kepala Sekolah: ${namaKepsek}` : ''}
+${nipKepsek ? `NIP Kepala Sekolah: ${nipKepsek}` : ''}
+${tahunAjaran ? `Tahun Ajaran: ${tahunAjaran}` : ''}
+${semester ? `Semester: ${semester}` : ''}
+
+===========================================
+TIPE LKPD
+===========================================
+
+Tipe: ${tipeLKPD} (${tipeLKPDDescriptions[tipeLKPD as TipeLKPD] || tipeLKPD})
+
+===========================================
+PENGATURAN SOAL
+===========================================
+
+Komposisi Soal: ${soalInfo}
+${tipeSoal.length > 0 ? `Tipe Soal: ${tipeSoal.join(', ')}` : ''}
+Kolom Jawaban: ${kolomJawaban === 'ada' ? 'Disediakan kolom jawaban' : kolomJawaban === 'tanpa' ? 'Tanpa kolom jawaban' : 'Disediakan kolom jawaban + kunci jawaban'}
+
+${konteksTema ? `===========================================
+KONTEKS/TEMA
+===========================================
+
+${konteksTema}
+
+` : ''}${catatanKhusus ? `===========================================
+CATATAN KHUSUS
+===========================================
+
+${catatanKhusus}
+
+` : ''}===========================================
 OUTPUT REQUIREMENTS
 ===========================================
 
 Generate an LKPD with:
-1. Engaging title related to ${materi}
+1. Engaging title related to ${materiPokok}
 2. Clear instructions for students
 3. 3-5 learning objectives
-4. 3-5 guided learning activities
-5. ${jumlahSoal} practice questions of varying difficulty
+4. 3-5 guided learning activities (sesuai tipe ${tipeLKPD})
+5. Questions following composition: ${soalInfo}
 
+${sertakanGambar ? `===========================================
+GAMBAR/ILUSTRASI
 ===========================================
+
+Include ${Math.max(2, Math.floor((komposisiSoal.reduce((acc: number, k: KomposisiSoal) => acc + k.jumlah, 0) || 10) * 0.2))} questions with image prompts.
+For image questions: set image_prompt to a detailed description in English.
+
+` : ''}===========================================
 REQUIRED JSON STRUCTURE
 ===========================================
 
 Return a JSON object with this exact structure:
 
 {
-  "judul": "Creative LKPD title related to ${materi}",
+  "identitas": {
+    "namaGuru": ${namaGuru ? `"${namaGuru}"` : 'null'},
+    "sekolah": ${sekolah ? `"${sekolah}"` : 'null'},
+    "mataPelajaran": "${mapel}",
+    "kelas": "${kelasValue}",
+    "materi": "${materiPokok}",
+    "alokasiWaktu": ${alokasiWaktu ? alokasiWaktu : 'null'},
+    "tipeLKPD": "${tipeLKPD}"
+  },
+  "judul": "Creative LKPD title related to ${materiPokok}",
   "petunjuk": "Clear step-by-step instructions for students",
   "tujuan": [
     "Learning objective 1",
@@ -192,17 +431,18 @@ Return a JSON object with this exact structure:
     {"nomor": 3, "kegiatan": "Third guided activity description"}
   ],
   "pertanyaan": [
-    {"nomor": 1, "pertanyaan": "First practice question"},
-    {"nomor": 2, "pertanyaan": "Second practice question"}
-    // ... repeat for ${jumlahSoal} questions
+    {"nomor": 1, "tipe": "${tipeSoal[0] || 'Pilihan Ganda'}", "pertanyaan": "First question text", ${kolomJawaban !== 'tanpa' ? `"kolomJawaban": "Space for answer",` : ''} ${sertakanGambar ? `"imagePrompt": "Detailed description in English",` : ''}},
+    {"nomor": 2, "tipe": "${tipeSoal[0] || 'Pilihan Ganda'}", "pertanyaan": "Second question text", ${kolomJawaban !== 'tanpa' ? `"kolomJawaban": "Space for answer",` : ''}}
   ]
 }
 
 REMEMBER:
 1. Return ONLY the JSON. No markdown, no explanations.
-2. Include exactly ${jumlahSoal} questions.
+2. Include exactly ${komposisiSoal.reduce((acc: number, k: KomposisiSoal) => acc + k.jumlah, 0) || 10} questions.
 3. Use student-friendly Indonesian language.
-4. Questions should be inquiry-based and critical thinking.`
+4. Questions should be inquiry-based and critical thinking.
+5. ${kolomJawaban === 'kunci' ? 'Include answer keys in the kolomJawaban field.' : ''}
+6. Activities should match the ${tipeLKPD} type (${tipeLKPDDescriptions[tipeLKPD as TipeLKPD] || tipeLKPD}).`
 }
 
 // ============================================

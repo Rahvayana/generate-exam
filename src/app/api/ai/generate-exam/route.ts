@@ -218,7 +218,7 @@ export async function POST(req: Request) {
         education_level: body.educationLevel || body.jenjang || '-',
         year: body.year || body.tahunPenyusunan || new Date().getFullYear().toString(),
         total_questions: parseInt(body.totalQuestions || body.jumlahSoal) || 10,
-        question_type: (body.questionType || body.tipeSoal || 'Pilihan Ganda')
+        question_type: String(body.questionType ?? body.tipeSoal ?? 'Pilihan Ganda')
           .toLowerCase()
           .replace(/ /g, '_') as any,
         curriculum: body.curriculum || body.kurikulum || undefined,

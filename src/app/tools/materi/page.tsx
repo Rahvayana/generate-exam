@@ -243,8 +243,8 @@ export default function MateriPage() {
       </header>
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white p-6 md:p-8 rounded-[28px] shadow-sm border border-slate-200">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-[28px] shadow-sm border border-slate-200">
             <form onSubmit={handleGenerate} className="space-y-6">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-4">
@@ -386,9 +386,10 @@ export default function MateriPage() {
             </form>
           </div>
 
-          <div className="space-y-6">
+          {/* Preview Section */}
+          <div className="lg:col-span-7 space-y-6">
             {isLoading ? (
-              <div className="bg-white p-12 rounded-[28px] shadow-sm border border-slate-200 text-center">
+              <div className="bg-white p-12 rounded-[28px] shadow-sm border border-slate-200 text-center sticky top-24">
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
                     <BrainIcon className="text-slate-600 w-10 h-10" />
@@ -399,7 +400,7 @@ export default function MateriPage() {
                 <p className="text-sm text-slate-500">Mohon tunggu sebentar</p>
               </div>
             ) : generatedData ? (
-              <div className="bg-white p-6 md:p-8 rounded-[28px] shadow-sm border border-slate-200">
+              <div className="bg-white p-6 md:p-8 rounded-[28px] shadow-sm border border-slate-200 sticky top-24">
                 <ToolPreviewTabs tool="materi" activeTab={activeTab} onTabChange={setActiveTab} />
                 {renderPreview()}
                 <ToolActions onCopy={handleCopy} onDownload={handleDownload} />

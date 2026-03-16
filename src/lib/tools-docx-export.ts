@@ -14,6 +14,8 @@ import {
   AlignmentType,
   BorderStyle,
   HeadingLevel,
+  PageBreak,
+  ImageRun,
 } from 'docx'
 import type {
   RPPResponse,
@@ -57,21 +59,23 @@ export function exportRPPToDocx(data: RPPResponse, filename?: string): Promise<v
     })
   )
 
-  // Identitas table
+  // Identitas table - with all new fields
   const identityRows: TableRow[] = []
 
-  if (data.identitas.namaGuru) {
+  // Helper function to add identity row
+  const addIdentityRow = (label: string, value: string | undefined) => {
+    if (!value) return
     identityRows.push(
       new TableRow({
         children: [
           new TableCell({
-            children: [new Paragraph('Nama Guru')],
+            children: [new Paragraph(label)],
             width: { size: 30, type: WidthType.PERCENTAGE },
             margins: cellMargin,
             borders: createBorder(),
           }),
           new TableCell({
-            children: [new Paragraph(': ' + data.identitas.namaGuru)],
+            children: [new Paragraph(': ' + value)],
             columnSpan: 3,
             width: { size: 70, type: WidthType.PERCENTAGE },
             margins: cellMargin,
@@ -82,87 +86,21 @@ export function exportRPPToDocx(data: RPPResponse, filename?: string): Promise<v
     )
   }
 
-  if (data.identitas.sekolah) {
-    identityRows.push(
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph('Nama Sekolah')],
-            width: { size: 30, type: WidthType.PERCENTAGE },
-            margins: cellMargin,
-            borders: createBorder(),
-          }),
-          new TableCell({
-            children: [new Paragraph(': ' + data.identitas.sekolah)],
-            columnSpan: 3,
-            width: { size: 70, type: WidthType.PERCENTAGE },
-            margins: cellMargin,
-            borders: createBorder(),
-          }),
-        ],
-      })
-    )
-  }
-
-  identityRows.push(
-    new TableRow({
-      children: [
-        new TableCell({
-          children: [new Paragraph('Mata Pelajaran')],
-          width: { size: 30, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-        new TableCell({
-          children: [new Paragraph(': ' + data.identitas.mataPelajaran)],
-          columnSpan: 3,
-          width: { size: 70, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-      ],
-    })
-  )
-
-  identityRows.push(
-    new TableRow({
-      children: [
-        new TableCell({
-          children: [new Paragraph('Kelas')],
-          width: { size: 30, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-        new TableCell({
-          children: [new Paragraph(': ' + data.identitas.kelas)],
-          columnSpan: 3,
-          width: { size: 70, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-      ],
-    })
-  )
-
-  identityRows.push(
-    new TableRow({
-      children: [
-        new TableCell({
-          children: [new Paragraph('Materi')],
-          width: { size: 30, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-        new TableCell({
-          children: [new Paragraph(': ' + data.identitas.materi)],
-          columnSpan: 3,
-          width: { size: 70, type: WidthType.PERCENTAGE },
-          margins: cellMargin,
-          borders: createBorder(),
-        }),
-      ],
-    })
-  )
+  addIdentityRow('Nama Guru', data.identitas.namaGuru)
+  addIdentityRow('NIP', data.identitas.nipGuru)
+  addIdentityRow('Nama Kepala Sekolah', data.identitas.namaKepsek)
+  addIdentityRow('NIP Kepala Sekolah', data.identitas.nipKepsek)
+  addIdentityRow('Nama Sekolah', data.identitas.sekolah)
+  addIdentityRow('NPSN', data.identitas.npsn)
+  addIdentityRow('Tahun Ajaran', data.identitas.tahunAjaran)
+  addIdentityRow('Semester', data.identitas.semester)
+  addIdentityRow('Kurikulum', data.identitas.kurikulum)
+  addIdentityRow('Fase', data.identitas.fase)
+  addIdentityRow('Mata Pelajaran', data.identitas.mataPelajaran)
+  addIdentityRow('Kelas', data.identitas.kelas)
+  addIdentityRow('Materi', data.identitas.materi)
+  addIdentityRow('Elemen CP', data.identitas.elemenCP)
+  addIdentityRow('Alokasi Waktu', data.identitas.alokasiWaktu)
 
   if (identityRows.length > 0) {
     sections.push(
@@ -170,6 +108,44 @@ export function exportRPPToDocx(data: RPPResponse, filename?: string): Promise<v
         rows: identityRows,
         width: { size: 100, type: WidthType.PERCENTAGE },
         margins: { top: 200, bottom: 300 },
+      })
+    )
+  }
+
+  // Profil Pelajar Pancasila (if exists)
+  if (data.profilPelajarPancasila && data.profilPelajarPancasila.length > 0) {
+    sections.push(
+      new Paragraph({
+        text: 'Profil Pelajar Pancasila',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 200 },
+      })
+    )
+
+    data.profilPelajarPancasila.forEach((profil, i) => {
+      sections.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `${i + 1}. `, bold: true }),
+            new TextRun(profil),
+          ],
+          spacing: { after: 150 },
+        })
+      )
+    })
+  }
+
+  // Model Pembelajaran (if exists)
+  if (data.modelPembelajaran) {
+    sections.push(
+      new Paragraph({
+        text: 'Model Pembelajaran',
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 200 },
+      }),
+      new Paragraph({
+        text: data.modelPembelajaran,
+        spacing: { after: 300 },
       })
     )
   }
@@ -338,8 +314,13 @@ export function exportRPPToDocx(data: RPPResponse, filename?: string): Promise<v
 // LKPD EXPORT
 // ============================================
 
-export function exportLKPDToDocx(data: LKPDResponse, filename?: string): Promise<void> {
+export function exportLKPDToDocx(data: LKPDResponse, images?: Record<number, string>, filename?: string): Promise<void> {
   const sections: (Paragraph | Table)[] = []
+
+  // Helper functions for images
+  const dataUrlToBase64 = (dataUrl: string): string => {
+    return dataUrl.split(',')[1] || dataUrl
+  }
 
   // Header
   sections.push(
@@ -350,6 +331,60 @@ export function exportLKPDToDocx(data: LKPDResponse, filename?: string): Promise
       spacing: { after: 200 },
     })
   )
+
+  // Identitas table (if exists)
+  if (data.identitas) {
+    const identityRows: TableRow[] = []
+
+    const addIdentityRow = (label: string, value: string | undefined) => {
+      if (!value) return
+      identityRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph(label)],
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              margins: cellMargin,
+              borders: createBorder(),
+            }),
+            new TableCell({
+              children: [new Paragraph(': ' + value)],
+              columnSpan: 3,
+              width: { size: 70, type: WidthType.PERCENTAGE },
+              margins: cellMargin,
+              borders: createBorder(),
+            }),
+          ],
+        })
+      )
+    }
+
+    addIdentityRow('Nama Guru', data.identitas.namaGuru)
+    addIdentityRow('NIP', data.identitas.nipGuru)
+    addIdentityRow('Nama Sekolah', data.identitas.sekolah)
+    addIdentityRow('NPSN', data.identitas.npsn)
+    addIdentityRow('Mata Pelajaran', data.identitas.mataPelajaran)
+    addIdentityRow('Kelas', data.identitas.kelas)
+    addIdentityRow('Materi', data.identitas.materi)
+    addIdentityRow('Alokasi Waktu', data.identitas.alokasiWaktu ? String(data.identitas.alokasiWaktu) + ' menit' : undefined)
+
+    if (identityRows.length > 0) {
+      sections.push(
+        new Paragraph({
+          text: 'Identitas',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 200, after: 150 },
+        })
+      )
+      sections.push(
+        new Table({
+          rows: identityRows,
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          margins: { top: 100, bottom: 200 },
+        })
+      )
+    }
+  }
 
   // Petunjuk
   sections.push(
@@ -394,6 +429,32 @@ export function exportLKPDToDocx(data: LKPDResponse, filename?: string): Promise
   )
 
   data.kegiatan.forEach((kegiatan) => {
+    // Check if this activity has an image
+    if (images && images[kegiatan.nomor]) {
+      const imageDataUrl = images[kegiatan.nomor]
+      try {
+        const base64Data = dataUrlToBase64(imageDataUrl)
+
+        sections.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 150, after: 150 },
+            children: [
+              new ImageRun({
+                data: base64Data,
+                transformation: {
+                  width: 300,
+                  height: 200,
+                },
+              } as any),
+            ],
+          })
+        )
+      } catch (e) {
+        // Ignore image errors
+      }
+    }
+
     sections.push(
       new Paragraph({
         children: [
@@ -416,6 +477,32 @@ export function exportLKPDToDocx(data: LKPDResponse, filename?: string): Promise
   )
 
   data.pertanyaan.forEach((pertanyaan) => {
+    // Check if this question has an image (use offset from kegiatan count)
+    if (images && images[data.kegiatan.length + pertanyaan.nomor]) {
+      const imageDataUrl = images[data.kegiatan.length + pertanyaan.nomor]
+      try {
+        const base64Data = dataUrlToBase64(imageDataUrl)
+
+        sections.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 150, after: 150 },
+            children: [
+              new ImageRun({
+                data: base64Data,
+                transformation: {
+                  width: 300,
+                  height: 200,
+                },
+              } as any),
+            ],
+          })
+        )
+      } catch (e) {
+        // Ignore image errors
+      }
+    }
+
     sections.push(
       new Paragraph({
         children: [
@@ -425,6 +512,31 @@ export function exportLKPDToDocx(data: LKPDResponse, filename?: string): Promise
         spacing: { after: 200 },
       })
     )
+
+    // Add column jawaban if exists
+    if (pertanyaan.kolomJawaban) {
+      sections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'Jawaban:',
+              italics: true,
+              size: 20,
+              color: '6B7280',
+            }),
+          ],
+          indent: { left: 720 },
+          spacing: { after: 100 },
+        })
+      )
+      sections.push(
+        new Paragraph({
+          text: pertanyaan.kolomJawaban,
+          indent: { left: 720 },
+          spacing: { after: 200 },
+        })
+      )
+    }
   })
 
   return generateAndDownload(sections, filename || `LKPD_${data.judul}_${Date.now()}.docx`)
