@@ -279,10 +279,67 @@ function createInstructionsSection(): Paragraph[] {
 // ============================================
 
 /**
- * Helper function to convert data URL to base64 without prefix
+ * Image format types
  */
-function dataUrlToBase64(dataUrl: string): string {
-  return dataUrl.split(',')[1] || dataUrl
+type ImageInput = string | undefined | null
+
+/**
+ * Normalize various image formats to a Buffer for docx ImageRun
+ * Handles:
+ * - Base64 data URLs (data:image/png;base64,...)
+ * - Plain URLs (https://...)
+ * - Markdown images (![alt](url))
+ * - Plain base64 strings
+ *
+ * @param input - The image input in various formats
+ * @returns Buffer containing the binary image data, or null if invalid
+ */
+async function normalizeImage(input: ImageInput): Promise<Buffer | null> {
+  if (!input) return null
+
+  try {
+    // Case 1: Markdown image format ![alt](url)
+    const markdownImageRegex = /!\[.*?\]\((.*?)\)/
+    const markdownMatch = input.match(markdownImageRegex)
+    if (markdownMatch) {
+      return await normalizeImage(markdownMatch[1])
+    }
+
+    // Case 2: Base64 data URL (data:image/png;base64,...)
+    if (input.startsWith('data:image')) {
+      // Remove the data URL prefix (e.g., "data:image/png;base64,")
+      const base64Data = input.replace(/^data:image\/\w+;base64,/, '')
+      return Buffer.from(base64Data, 'base64')
+    }
+
+    // Case 3: Plain URL (https://..., http://...)
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+      const response = await fetch(input)
+      if (!response.ok) {
+        console.warn(`Failed to fetch image: ${input} - ${response.statusText}`)
+        return null
+      }
+      const arrayBuffer = await response.arrayBuffer()
+      return Buffer.from(arrayBuffer)
+    }
+
+    // Case 4: Plain base64 string (no prefix)
+    // Try to detect if it's a base64 string by checking if it looks like one
+    // and can be decoded
+    if (/^[A-Za-z0-9+/=]+$/.test(input) && input.length > 100) {
+      try {
+        return Buffer.from(input, 'base64')
+      } catch {
+        // Not a valid base64 string, fall through
+      }
+    }
+
+    console.warn(`Unable to process image: ${input?.substring(0, 50)}...`)
+    return null
+  } catch (error) {
+    console.warn(`Error processing image:`, error)
+    return null
+  }
 }
 
 /**
@@ -321,24 +378,24 @@ async function createQuestionsSection(
     for (const q of multipleChoiceQuestions) {
       // Check if this question has an image
       if (images && images[q.number]) {
-        const imageDataUrl = images[q.number]
-        const base64Data = dataUrlToBase64(imageDataUrl)
+        const imageBuffer = await normalizeImage(images[q.number])
 
-        paragraphs.push(
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 200, after: 200 },
-            children: [
-              new ImageRun({
-                data: base64Data,
-                transformation: {
-                  width: 300,
-                  height: 200,
-                },
-              } as any),
-            ],
-          })
-        )
+        if (imageBuffer) {
+          paragraphs.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 200, after: 200 },
+              children: [
+                new ImageRun({
+                  data: imageBuffer,
+                  transformation: {
+                    width: 300,
+                  },
+                }),
+              ],
+            })
+          )
+        }
       }
 
       // Question number and text
@@ -410,10 +467,9 @@ async function createQuestionsSection(
     for (const q of essayQuestions) {
       // Check if this question has an image
       if (images && images[q.number]) {
-        const imageDataUrl = images[q.number]
-        try {
-          const base64Data = dataUrlToBase64(imageDataUrl)
+        const imageBuffer = await normalizeImage(images[q.number])
 
+        if (imageBuffer) {
           // Add image paragraph
           paragraphs.push(
             new Paragraph({
@@ -421,16 +477,15 @@ async function createQuestionsSection(
               spacing: { before: 200, after: 200 },
               children: [
                 new ImageRun({
-                  data: base64Data,
+                  data: imageBuffer,
                   transformation: {
                     width: 300,
-                    height: 200,
                   },
-                } as any),
+                }),
               ],
             })
           )
-        } catch (error) {
+        } else {
           // If image fails to load, add a placeholder note
           paragraphs.push(
             new Paragraph({
